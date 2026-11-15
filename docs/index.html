@@ -1045,6 +1045,24 @@ const STEPS = [
   }
 ];
 
+/* Starting the walkthrough from the pad leaves the trail below the fold, so
+   the narration runs where nobody is looking. Scroll to it, but keep as much
+   of the diagram on screen as the trail's height allows: the two explain each
+   other, and the diagram is what each step lights up. */
+function revealTrail() {
+  const trail = document.querySelector('.cell-trail');
+  if (!trail) return;
+  const r = trail.getBoundingClientRect();
+  const vh = window.innerHeight;
+  const pageTop = window.scrollY + r.top;
+  // how much room is left above the trail once it is fully on screen
+  // give the diagram every pixel that is left once the trail fits whole
+  const slack = Math.max(16, Math.min(vh * 0.6, vh - r.height - 16));
+  const target = Math.max(0, Math.round(pageTop - slack));
+  if (Math.abs(target - window.scrollY) < 24) return;   // already there
+  window.scrollTo({ top: target, behavior: reduced.matches ? 'auto' : 'smooth' });
+}
+
 /* ---- walkthrough plumbing ---- */
 const wtBody = document.getElementById('wt-body');
 const wtCount = document.getElementById('wt-count');
@@ -1132,7 +1150,10 @@ function playTick(now) {
 
 document.getElementById('wt-next').addEventListener('click', () => { stopPlay(); goStep(step + 1); });
 document.getElementById('wt-back').addEventListener('click', () => { stopPlay(); goStep(step - 1); });
-document.getElementById('wt-play').addEventListener('click', () => playing ? stopPlay() : startPlay());
+document.getElementById('wt-play').addEventListener('click', () => {
+  if (playing) { stopPlay(); return; }
+  revealTrail(); startPlay();
+});
 document.querySelector('.wt').addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') { stopPlay(); goStep(step + 1); e.preventDefault(); }
   if (e.key === 'ArrowLeft') { stopPlay(); goStep(step - 1); e.preventDefault(); }
@@ -1380,7 +1401,9 @@ netCanvas.addEventListener('keydown', e => {
 document.getElementById('clear').addEventListener('click', () => {
   clearPad(); truth = null; loadedVector = null; padhint.style.opacity = '1'; stopPlay(); run();
 });
-document.getElementById('replay').addEventListener('click', () => { stopPlay(); goStep(0); startPlay(); });
+document.getElementById('replay').addEventListener('click', () => {
+  stopPlay(); goStep(0); revealTrail(); startPlay();
+});
 
 /* ---- samples ---- */
 function paintSample(s, label) {
@@ -1446,7 +1469,7 @@ async function boot() {
     btn.setAttribute('aria-label',
       `Load a ${m.truth} that the network reads as a ${m.pred}, at ${(m.conf * 100).toFixed(0)} percent confidence`);
     btn.addEventListener('click', () => {
-      stopPlay(); paintSample(m, m.truth); run(); goStep(STEPS.length - 1);
+      stopPlay(); paintSample(m, m.truth); run(); goStep(STEPS.length - 1); revealTrail();
     });
     mbox.appendChild(btn);
   });
