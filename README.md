@@ -16,7 +16,7 @@ backwards. Two of the six are failures the network is 100% confident about,
 which is the point: a softmax probability says how strongly these weights vote,
 not how often they are right.
 
-**Live page:** PAGES_URL_PLACEHOLDER
+**Live page:** https://ayushmp10.github.io/digit-recognizer/
 
     784 -> 32 (relu) -> 16 (relu) -> 10 (softmax)
     25,818 parameters    97.81% accuracy on the 10,000 MNIST test digits
