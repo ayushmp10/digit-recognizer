@@ -1,0 +1,9 @@
+# MNIST, downloaded by train/data.py; not ours to redistribute and 11 MB besides
+data/
+
+# Hallmark's working records and screenshots
+.hallmark/
+
+.DS_Store
+__pycache__/
+*.pyc

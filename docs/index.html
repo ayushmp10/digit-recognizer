@@ -1,0 +1,1482 @@
+<title>Digit Scope</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Draw a digit and watch a small neural network classify it, one operation at a time, with the arithmetic taken from your own drawing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Console (deal 1/3, seed teaching-instrument-university-course-1202·f91f039f·2026-11-15·r0) · redesign: full
+ * nav: kept, a one-line top bar, the name beside the three figures that describe the network · signature: the forward pass kept as a trail, ten operations on a spine, the open one showing its arithmetic in the drawn digit's own numbers · states: loading, empty, error, full · console: graphite, paper under prefers-color-scheme: light
+ * axes: dark/grotesk-sans/chromatic-amber · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4 · weakest: P, an instrument argues by being trustworthy rather than by having a view, so the argument it does make is that a confident answer and a correct one are different things: the trail ends on the loss and the failures load from a row of their own */
+/* Hallmark · note · Console reads amber as a person and cool as an instrument; here they are the two signs a weight can carry, because the diagram needs one diverging pair and the page's own copy teaches that pair. Amber still marks the person's controls and the open step. */
+/* Hallmark · dismissed 24b · the scale is the scaffold's; the three off-scale values left are optical nudges on hairline seams */
+
+/* ---- tokens: Console, graphite, plus the shared scale ---- */
+:root {
+  color-scheme: dark;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-paper: oklch(17% 0.008 250); --color-paper-2: oklch(21% 0.009 250); --color-paper-3: oklch(13.5% 0.007 250);
+  --color-ink: oklch(95% 0.005 250); --color-ink-2: oklch(83% 0.008 250); --color-muted: oklch(71% 0.01 250);
+  --color-rule: oklch(31% 0.01 250); --color-rule-2: oklch(42% 0.012 250);
+  --color-accent: oklch(82% 0.15 80); --color-accent-ink: oklch(18% 0.04 75); --color-accent-soft: oklch(29% 0.05 80); --color-focus: oklch(82% 0.15 80);
+  --color-cool: oklch(77% 0.12 245); --color-cool-soft: oklch(29% 0.05 245);
+  --color-bad: oklch(70% 0.17 25); --color-bad-soft: oklch(24.5% 0.035 25);
+  --font-display: "Host Grotesk", ui-sans-serif, system-ui, sans-serif; --font-body: var(--font-display);
+  --font-outlier: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-card: 10px; --radius-pill: 6px; --rule-hair: 1px;
+  --tracking-display: -0.03em; --display-weight: 500;
+  /* the pad is the MNIST field itself, near-black in either colourway */
+  --pad-ground: oklch(13% 0.006 250); --pad-hint: oklch(62% 0.01 250);
+  /* the two signs a weight carries; see the note in the stamp */
+  --sig-pos: var(--color-accent); --sig-neg: var(--color-cool);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-paper: oklch(96.5% 0.006 85); --color-paper-2: oklch(99.5% 0.003 85); --color-paper-3: oklch(93.5% 0.008 85);
+    --color-ink: oklch(19% 0.010 60); --color-ink-2: oklch(32% 0.010 60); --color-muted: oklch(43% 0.012 60);
+    --color-rule: oklch(86% 0.008 85); --color-rule-2: oklch(70% 0.010 85);
+    --color-accent: oklch(51% 0.14 70); --color-accent-ink: oklch(99% 0.005 85); --color-accent-soft: oklch(92% 0.045 80); --color-focus: oklch(51% 0.14 70);
+    --color-cool: oklch(47% 0.15 250); --color-cool-soft: oklch(92% 0.04 245);
+    --color-bad: oklch(50% 0.18 25); --color-bad-soft: oklch(93% 0.04 25);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-paper: oklch(96.5% 0.006 85); --color-paper-2: oklch(99.5% 0.003 85); --color-paper-3: oklch(93.5% 0.008 85);
+  --color-ink: oklch(19% 0.010 60); --color-ink-2: oklch(32% 0.010 60); --color-muted: oklch(43% 0.012 60);
+  --color-rule: oklch(86% 0.008 85); --color-rule-2: oklch(70% 0.010 85);
+  --color-accent: oklch(51% 0.14 70); --color-accent-ink: oklch(99% 0.005 85); --color-accent-soft: oklch(92% 0.045 80); --color-focus: oklch(51% 0.14 70);
+  --color-cool: oklch(47% 0.15 250); --color-cool-soft: oklch(92% 0.04 245);
+  --color-bad: oklch(50% 0.18 25); --color-bad-soft: oklch(93% 0.04 25);
+}
+
+/* ---- base ---- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-muted) var(--color-paper); }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--color-paper); color: var(--color-ink);
+  font-family: var(--font-body); font-size: var(--text-md); line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
+  padding-block: var(--space-lg) var(--space-2xl);
+  max-width: 1480px; margin-inline: auto;
+}
+::selection { background: color-mix(in oklab, var(--color-accent) 25%, transparent); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); line-height: 1.05; overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+h1 { font-size: var(--text-xl); }
+h2 { font-size: var(--text-md); }
+h3 { font-size: var(--text-lg); line-height: 1.2; }
+p { margin: 0; text-wrap: pretty; }
+button { font: inherit; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* what an instrument measured: never a label, a head or a control */
+.measured { font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; }
+
+/* ---- the top bar: one line, the name beside what the network is ---- */
+.bar { display: flex; align-items: baseline; gap: var(--space-md) var(--space-xl); flex-wrap: wrap; padding-block: var(--space-xs) var(--space-lg); }
+.bar .what { color: var(--color-muted); font-size: var(--text-sm); max-width: 54ch; }
+.specs { display: flex; gap: var(--space-lg); margin-left: auto; flex-wrap: wrap; }
+.spec { display: flex; align-items: baseline; gap: var(--space-xs); }
+.spec dt { color: var(--color-muted); font-size: var(--text-sm); }
+.spec dd { margin: 0; font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-sm); color: var(--color-ink); }
+
+/* ---- the bench: one surface, cut by hairline seams ---- */
+.bench {
+  display: grid; gap: var(--rule-hair);
+  background: var(--color-rule);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-card); overflow: hidden;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  grid-template-areas: "input scope reading" "trail trail trail";
+}
+.bench > section { background: var(--color-paper-2); padding: var(--space-md); min-width: 0; }
+.cell-input { grid-area: input; } .cell-scope { grid-area: scope; } .cell-reading { grid-area: reading; } .cell-trail { grid-area: trail; }
+@media (max-width: 1240px) {
+  .bench { grid-template-columns: 300px minmax(0, 1fr); grid-template-areas: "input scope" "reading reading" "trail trail"; }
+}
+@media (max-width: 860px) {
+  .bench { grid-template-columns: minmax(0, 1fr); grid-template-areas: "input" "scope" "reading" "trail"; }
+}
+.head { display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+.head h2 { color: var(--color-ink); }
+.head .tag { margin-left: auto; color: var(--color-muted); font-size: var(--text-sm); }
+.head .tag.measured { font-size: var(--text-sm); }
+
+/* ---- controls: the pair ---- */
+button.btn { border: var(--rule-hair) solid var(--color-rule-2); border-radius: var(--radius-pill); padding: 0 var(--space-sm); min-height: 36px; background: var(--color-paper-2); color: var(--color-ink); font-weight: 500; font-size: var(--text-sm); cursor: pointer; transition: background-color var(--dur-short) var(--ease-out); }
+button.btn:hover:not(:disabled) { background: var(--color-paper-3); }
+button.btn:active:not(:disabled) { transform: translateY(1px); }
+button.btn:disabled { opacity: .55; cursor: not-allowed; }
+button.btn--primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
+button.btn--primary:hover:not(:disabled) { background: color-mix(in oklab, var(--color-accent) 88%, var(--color-ink)); }
+.row { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-top: var(--space-sm); }
+
+/* ---- the pad ---- */
+.padwrap { position: relative; background: var(--pad-ground); border-radius: var(--radius-pill); overflow: hidden; aspect-ratio: 1; }
+#pad { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.padhint { position: absolute; inset: auto 0 var(--space-sm); text-align: center; color: var(--pad-hint); font-size: var(--text-sm); pointer-events: none; transition: opacity var(--dur-short) var(--ease-out); }
+.digits { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2xs); margin-top: var(--space-xs); }
+.digits button { border: var(--rule-hair) solid var(--color-rule); border-radius: 4px; background: var(--color-paper-3); color: var(--color-ink-2); min-height: 36px; padding: 0; cursor: pointer; font-family: var(--font-outlier); font-size: var(--text-sm); font-variant-numeric: tabular-nums slashed-zero; transition: background-color var(--dur-short) var(--ease-out); }
+.digits button:hover { background: var(--color-accent-soft); color: var(--color-ink); }
+.digits.misses { grid-template-columns: repeat(3, 1fr); }
+.sub-label { margin-top: var(--space-md); font-size: var(--text-sm); color: var(--color-ink-2); display: flex; gap: var(--space-xs); align-items: baseline; flex-wrap: wrap; }
+.sub-label span { color: var(--color-muted); }
+.seen { display: flex; gap: var(--space-sm); align-items: flex-start; margin-top: var(--space-md); padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+#seen28 { width: 88px; height: 88px; border-radius: 4px; background: var(--pad-ground); image-rendering: pixelated; flex: none; }
+.seen p { color: var(--color-muted); font-size: var(--text-sm); min-width: 0; }
+
+/* ---- the scope ---- */
+#net { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; border-radius: var(--radius-pill); background: var(--color-paper-3); }
+@media (max-width: 860px) { #net { aspect-ratio: 4 / 3.4; } }
+.legend { display: flex; gap: var(--space-md); flex-wrap: wrap; font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-sm); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend b { font-weight: 500; color: var(--color-ink-2); }
+
+/* ---- the reading ---- */
+.reading { display: flex; align-items: baseline; gap: var(--space-sm); }
+.reading .value { font-family: var(--font-outlier); font-size: var(--text-3xl); font-weight: 400; letter-spacing: -0.04em; line-height: 1; color: var(--color-ink); }
+.reading .p { font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-lg); color: var(--color-cool); }
+.reading-sub { color: var(--color-muted); font-size: var(--text-sm); margin-top: var(--space-2xs); }
+.truthline { margin-top: var(--space-xs); font-size: var(--text-sm); display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.chip { font-size: var(--text-sm); font-weight: 500; border-radius: 4px; padding: 1px var(--space-xs); border: var(--rule-hair) solid var(--color-rule-2); }
+.chip.bad { background: var(--color-bad-soft); color: var(--color-bad); border-color: var(--color-bad); }
+.chip.good { background: var(--color-cool-soft); color: var(--color-cool); border-color: var(--color-cool); }
+.truthline .what { color: var(--color-muted); }
+
+table.sm { width: 100%; border-collapse: collapse; margin-top: var(--space-md); }
+table.sm th { font-size: var(--text-sm); color: var(--color-muted); font-weight: 500; text-align: right; padding-bottom: var(--space-2xs); white-space: nowrap; border-bottom: var(--rule-hair) solid var(--color-rule); }
+table.sm th:first-child, table.sm td:first-child { text-align: left; }
+table.sm td { padding: var(--space-3xs) 0; font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-sm); border-bottom: var(--rule-hair) solid color-mix(in oklab, var(--color-rule) 45%, transparent); }
+table.sm td.d { width: 2ch; color: var(--color-muted); }
+table.sm tr.top td.d, table.sm tr.top td.p { color: var(--color-accent); }
+table.sm tr.top { background: var(--color-accent-soft); }
+table.sm td.bar { width: 100%; padding-inline: var(--space-xs); }
+.track { background: var(--color-paper-3); border-radius: 2px; height: 8px; overflow: hidden; }
+.fill { height: 100%; width: 100%; background: var(--color-cool); border-radius: 2px; transform: scaleX(0); transform-origin: left center; transition: transform var(--dur-short) var(--ease-out); }
+table.sm tr.top .fill { background: var(--color-accent); }
+table.sm td.z { color: var(--color-muted); }
+table.sm td.p { width: 8ch; text-align: right; color: var(--color-ink-2); }
+
+/* ---- the inspector ---- */
+.inspector { margin-top: var(--space-md); padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+.insp-empty { color: var(--color-muted); font-size: var(--text-sm); }
+.insp-head { display: flex; align-items: baseline; gap: var(--space-xs); margin-bottom: var(--space-xs); flex-wrap: wrap; }
+.insp-head b { font-family: var(--font-outlier); font-size: var(--text-sm); font-weight: 500; }
+.insp-head span { color: var(--color-muted); font-size: var(--text-sm); }
+.insp-grid { display: flex; gap: var(--space-sm); align-items: flex-start; flex-wrap: wrap; }
+#rf { width: 88px; height: 88px; border-radius: 4px; image-rendering: pixelated; background: var(--color-paper-3); flex: none; }
+#curve { width: 148px; height: 74px; flex: none; }
+.trace { font-family: var(--font-outlier); font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-xs); line-height: 1.7; word-break: break-word; }
+.trace b { color: var(--color-ink); font-weight: 500; }
+.contrib { list-style: none; padding: 0; margin-top: var(--space-xs); display: flex; flex-direction: column; gap: var(--space-3xs); }
+.contrib li { display: flex; align-items: center; gap: var(--space-2xs); font-family: var(--font-outlier); font-size: var(--text-sm); font-variant-numeric: tabular-nums slashed-zero; }
+.contrib .cb { height: 8px; border-radius: 2px; flex: none; }
+.contrib .cv { color: var(--color-muted); }
+
+/* ---- the trail: ten operations on a spine ---- */
+.wt { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-lg); }
+@media (max-width: 860px) { .wt { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); } }
+.trail-head { display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+.wt-count { color: var(--color-muted); font-size: var(--text-sm); }
+.wt-nav { display: flex; gap: var(--space-xs); margin-left: auto; }
+.ring { flex: none; transform: rotate(-90deg); visibility: hidden; }
+.ring.on { visibility: visible; }
+.ring circle { fill: none; stroke-width: 2; }
+.ring-track { stroke: var(--color-rule-2); }
+.ring-arc { stroke: var(--color-accent); stroke-linecap: round; stroke-dasharray: 43.98; stroke-dashoffset: 43.98; }
+.dots { list-style: none; padding: 0; margin: 0; border-left: var(--rule-hair) solid var(--color-rule-2); }
+.dots li { display: block; }
+.dots button {
+  display: flex; align-items: baseline; gap: var(--space-xs); width: 100%; text-align: left;
+  background: none; border: 0; border-left: 2px solid transparent; margin-left: -1px;
+  padding: var(--space-2xs) var(--space-xs); cursor: pointer; color: var(--color-muted);
+  font-size: var(--text-sm); transition: color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+.dots button:hover { background: var(--color-paper-3); color: var(--color-ink-2); }
+.dots button .n { font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-xs); color: var(--color-muted); width: 2ch; flex: none; }
+.dots button .nm { flex: 1; min-width: 0; }
+.dots button .rd { font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-xs); color: var(--color-cool); text-align: right; white-space: nowrap; }
+.dots button[aria-current="true"] { border-left-color: var(--color-accent); background: var(--color-paper-3); color: var(--color-ink); }
+.dots button[aria-current="true"] .n { color: var(--color-accent); }
+.dots button[data-done="1"] .nm { color: var(--color-ink-2); }
+.wt-body h3 { margin-bottom: var(--space-2xs); }
+.wt-body p.lede { font-size: var(--text-md); color: var(--color-ink-2); max-width: 68ch; margin-bottom: var(--space-sm); }
+.wt-body p.why { margin-top: var(--space-sm); font-size: var(--text-sm); color: var(--color-muted); max-width: 68ch; }
+.wt-body p.why b { color: var(--color-ink-2); font-weight: 500; }
+.eq { background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); padding: var(--space-sm); font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; font-size: var(--text-sm); line-height: 1.9; overflow-x: auto; }
+.eq .ln { display: block; white-space: nowrap; }
+.eq .lbl { color: var(--color-muted); }
+.eq .plus { color: var(--sig-pos); font-weight: 500; }
+.eq .minus { color: var(--sig-neg); font-weight: 500; }
+.eq .hi { color: var(--color-accent); font-weight: 500; }
+.eq .dim { color: var(--color-muted); }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin-inline: var(--space-3xs); }
+.frac .num { padding: 0 var(--space-2xs) 1px; }
+.frac .den { padding: 1px var(--space-2xs) 0; border-top: var(--rule-hair) solid currentColor; }
+
+/* ---- states ---- */
+.skeleton { background: var(--color-paper-3); border-radius: 4px; height: 1em; }
+.state { color: var(--color-muted); font-size: var(--text-sm); }
+.state b { display: block; color: var(--color-ink); font-weight: 500; font-size: var(--text-md); margin-bottom: var(--space-3xs); }
+.state.error b { color: var(--color-bad); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---- the footnotes ---- */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-lg); margin-top: var(--space-lg); }
+.note h3 { font-size: var(--text-sm); font-weight: 500; color: var(--color-ink); margin-bottom: var(--space-3xs); }
+.note p { font-size: var(--text-sm); color: var(--color-muted); }
+.note code { font-family: var(--font-outlier); font-size: var(--text-xs); color: var(--color-ink-2); }
+</style>
+
+<header class="bar">
+  <div>
+    <h1>Digit Scope</h1>
+    <p class="what">Draw a digit. The network classifies it, and the trail below shows every operation it performed, with the arithmetic taken from your own drawing.</p>
+  </div>
+  <dl class="specs">
+    <div class="spec"><dt>Layers</dt><dd id="s-arch"></dd></div>
+    <div class="spec"><dt>Weights</dt><dd id="s-params"></dd></div>
+    <div class="spec"><dt>Accuracy</dt><dd id="s-acc"></dd></div>
+  </dl>
+</header>
+
+<div class="bench">
+  <section class="cell-input">
+    <div class="head">
+      <h2>Input</h2>
+      <span class="tag measured">280 &times; 280</span>
+    </div>
+    <div class="padwrap">
+      <canvas id="pad" width="280" height="280" aria-label="Drawing area. Draw a digit with the mouse or a finger."></canvas>
+      <div class="padhint" id="padhint" style="opacity:0">draw a digit here</div>
+    </div>
+    <div class="row">
+      <button type="button" class="btn btn--primary" id="clear">Clear</button>
+      <button type="button" class="btn" id="replay">Walk through it</button>
+    </div>
+
+    <p class="sub-label" id="samples-label">Test digits it reads correctly</p>
+    <div class="digits" id="samples" role="group" aria-labelledby="samples-label"></div>
+
+    <p class="sub-label" id="misses-label">Test digits it gets wrong <span>true &rarr; guessed</span></p>
+    <div class="digits misses" id="misses" role="group" aria-labelledby="misses-label"></div>
+
+    <div class="seen">
+      <canvas id="seen28" width="28" height="28" role="img" aria-label="The input reduced to a 28 by 28 grid of grey values."></canvas>
+      <p id="seen-copy">Your strokes are cropped, scaled to a 20&nbsp;px box and re-centred on their centre of mass, the same normalisation MNIST uses. Each of the <span class="measured">28&times;28</span> cells becomes one input unit.</p>
+    </div>
+  </section>
+
+  <section class="cell-scope">
+    <div class="head">
+      <h2>Forward pass</h2>
+      <span class="tag" id="net-stage">the input</span>
+    </div>
+    <canvas id="net" tabindex="0" role="img" aria-label="Network diagram"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--sig-pos)"></i><b>+</b> pushes the next neuron up</span>
+      <span><i style="background:var(--sig-neg)"></i><b>&minus;</b> pushes it down</span>
+      <span>brightness is the size of the contribution</span>
+    </div>
+  </section>
+
+  <section class="cell-reading">
+    <div class="head">
+      <h2>Reading</h2>
+      <span class="tag">softmax over 10</span>
+    </div>
+    <div class="reading">
+      <span class="value" id="pred">?</span>
+      <span class="p" id="conf"></span>
+    </div>
+    <p class="reading-sub" id="conf-sub">draw a digit to run the network</p>
+    <p class="truthline" id="truthline" hidden></p>
+    <table class="sm">
+      <caption class="vh">Raw score and probability for each digit</caption>
+      <thead><tr><th scope="col">digit</th><th scope="col">z, raw score</th><th scope="col"><span class="vh">probability</span></th><th scope="col">p</th></tr></thead>
+      <tbody id="probs"></tbody>
+    </table>
+
+    <div class="inspector">
+      <div class="head">
+        <h2>Neuron</h2>
+        <span class="tag" id="insp-tag">pick one</span>
+      </div>
+      <div id="insp"></div>
+    </div>
+  </section>
+
+  <section class="cell-trail">
+    <div class="wt">
+      <div>
+        <div class="trail-head">
+          <h2>The trail</h2>
+          <span class="wt-count" id="wt-count">Step 1 of 10</span>
+          <svg class="ring" id="ring" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <circle class="ring-track" cx="9" cy="9" r="7"></circle>
+            <circle class="ring-arc" id="ring-arc" cx="9" cy="9" r="7"></circle>
+          </svg>
+        </div>
+        <ul class="dots" id="wt-dots"></ul>
+        <div class="wt-nav" style="margin-top:var(--space-sm)">
+          <button type="button" class="btn" id="wt-play">Play</button>
+          <button type="button" class="btn" id="wt-back">Back</button>
+          <button type="button" class="btn btn--primary" id="wt-next">Next</button>
+        </div>
+      </div>
+      <div class="wt-body" id="wt-body" aria-live="polite"></div>
+    </div>
+  </section>
+</div>
+
+<section class="notes">
+  <div class="note">
+    <h3>Hidden means unobserved</h3>
+    <p>Layers 1 and 2 are called hidden for one reason: their outputs are never part of the training data. Here they are on screen anyway.</p>
+  </div>
+  <div class="note">
+    <h3>Depth is literal</h3>
+    <p>Nothing makes a network &ldquo;deep&rdquo; except the number of stacked hidden layers. This one has two, so it is barely deep at all, and it still gets 97.8% right.</p>
+  </div>
+  <div class="note">
+    <h3>Raw scores are not probabilities</h3>
+    <p>The last layer emits 10 unbounded <code>z</code> values. Softmax exponentiates them and divides by the total, which is the only reason the column of <code>p</code> sums to 1.</p>
+  </div>
+  <div class="note">
+    <h3>Trained by hand</h3>
+    <p>ReLU hidden layers, cross-entropy loss, mini-batch SGD with a decaying learning rate and L2. Backprop is written out term by term in <code>network.py</code>.</p>
+  </div>
+</section>
+<p class="vh" id="live" aria-live="polite"></p>
+<script>
+"use strict";
+/* ===========================================================================
+   The same network as network.py, re-implemented for the browser.
+   Weights come from weights.json, exported after training on 55,000 MNIST
+   digits. Nothing is learned here -- this file runs the forward pass, draws
+   it, and narrates it one operation at a time.
+   =========================================================================== */
+
+let net = null, samples = [], misses = [], state = null;
+let truth = null;        // the correct answer, when the digit came from the test set
+let loadedVector = null; // the exact 784 values of a loaded test digit, if any
+let input784 = new Float32Array(784);
+
+const relu = z => Math.max(0, z);
+
+function softmax(z) {
+  // Subtract the max before exponentiating: softmax(z) == softmax(z - c),
+  // and it keeps Math.exp from overflowing. Step 8 shows this on screen.
+  let m = -Infinity;
+  for (const v of z) if (v > m) m = v;
+  const e = new Float32Array(z.length);
+  let sum = 0;
+  for (let i = 0; i < z.length; i++) { e[i] = Math.exp(z[i] - m); sum += e[i]; }
+  for (let i = 0; i < z.length; i++) e[i] /= sum;
+  return e;
+}
+
+/* ---- the forward pass ----------------------------------------------------
+   For each layer:  z = W^T a + b,  then a = f(z).
+   W[l] is flat in row-major (n_in, n_out) order exactly as numpy ravel() wrote
+   it, so the weight from unit i to unit j is W[l][i*n_out + j].              */
+function forward(x) {
+  const { sizes, W, b } = net;
+  const acts = [x], zs = [];
+  let a = x;
+  for (let l = 0; l < W.length; l++) {
+    const nIn = sizes[l], nOut = sizes[l + 1];
+    const z = new Float32Array(nOut);
+    for (let j = 0; j < nOut; j++) {
+      let s = b[l][j];
+      for (let i = 0; i < nIn; i++) s += a[i] * W[l][i * nOut + j];
+      z[j] = s;
+    }
+    const last = l === W.length - 1;
+    a = last ? softmax(z) : Float32Array.from(z, relu);
+    zs.push(z); acts.push(a);
+  }
+  return { acts, zs, probs: acts[acts.length - 1], logits: zs[zs.length - 1] };
+}
+
+/* ===========================================================================
+   Input: 280x280 of mouse strokes -> the 784 numbers layer 0 expects.
+   MNIST digits are cropped, scaled so the longest side is 20px, and placed in
+   a 28x28 field centred on their centre of mass. Skip this and a drawing lands
+   nowhere near anything the network trained on.
+   =========================================================================== */
+const pad = document.getElementById('pad');
+const padCtx = pad.getContext('2d', { willReadFrequently: true });
+const S = 280;
+
+function clearPad() { padCtx.fillStyle = '#000'; padCtx.fillRect(0, 0, S, S); }
+
+function preprocess() {
+  const data = padCtx.getImageData(0, 0, S, S).data;
+  const lum = new Float32Array(S * S);
+  let minx = S, miny = S, maxx = -1, maxy = -1;
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const v = data[(y * S + x) * 4] / 255;
+      lum[y * S + x] = v;
+      if (v > 0.08) {
+        if (x < minx) minx = x; if (x > maxx) maxx = x;
+        if (y < miny) miny = y; if (y > maxy) maxy = y;
+      }
+    }
+  }
+  const out = new Float32Array(784);
+  if (maxx < 0) return out;
+
+  const w = maxx - minx + 1, h = maxy - miny + 1;
+  const scale = 20 / Math.max(w, h);
+  const tw = Math.max(1, Math.round(w * scale)), th = Math.max(1, Math.round(h * scale));
+
+  // Box-average into the small grid: this produces the soft grey edges MNIST
+  // has, rather than hard aliased pixels.
+  const small = new Float32Array(tw * th);
+  for (let ty = 0; ty < th; ty++) {
+    const y0 = miny + Math.floor(ty * h / th);
+    const y1 = miny + Math.max(Math.floor((ty + 1) * h / th), Math.floor(ty * h / th) + 1);
+    for (let tx = 0; tx < tw; tx++) {
+      const x0 = minx + Math.floor(tx * w / tw);
+      const x1 = minx + Math.max(Math.floor((tx + 1) * w / tw), Math.floor(tx * w / tw) + 1);
+      let sum = 0, n = 0;
+      for (let y = y0; y < Math.min(y1, S); y++)
+        for (let x = x0; x < Math.min(x1, S); x++) { sum += lum[y * S + x]; n++; }
+      small[ty * tw + tx] = n ? sum / n : 0;
+    }
+  }
+
+  let mass = 0, cx = 0, cy = 0;
+  for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+    const v = small[y * tw + x]; mass += v; cx += v * x; cy += v * y;
+  }
+  if (mass > 0) { cx /= mass; cy /= mass; } else { cx = tw / 2; cy = th / 2; }
+  let ox = Math.max(0, Math.min(28 - tw, Math.round(13.5 - cx)));
+  let oy = Math.max(0, Math.min(28 - th, Math.round(13.5 - cy)));
+
+  for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+    const dx = x + ox, dy = y + oy;
+    if (dx >= 0 && dx < 28 && dy >= 0 && dy < 28) out[dy * 28 + dx] = small[y * tw + x];
+  }
+  return out;
+}
+
+/* ---- drawing ---- */
+let drawing = false, lastPt = null, lastRun = 0;
+const padhint = document.getElementById('padhint');
+function ptFromEvent(e) {
+  const r = pad.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * (S / r.width), y: (e.clientY - r.top) * (S / r.height) };
+}
+function strokeTo(p) {
+  padCtx.strokeStyle = '#fff';
+  padCtx.lineWidth = 20;
+  padCtx.lineCap = padCtx.lineJoin = 'round';
+  padCtx.beginPath(); padCtx.moveTo(lastPt.x, lastPt.y); padCtx.lineTo(p.x, p.y); padCtx.stroke();
+  lastPt = p;
+}
+pad.addEventListener('pointerdown', e => {
+  // Capture keeps the stroke alive if the pointer leaves the pad mid-drag, but
+  // it throws on a pointer id the element never saw: never let that stop a stroke.
+  try { pad.setPointerCapture(e.pointerId); } catch (_) {}
+  drawing = true; lastPt = ptFromEvent(e);
+  truth = null;                       // your drawing has no ground-truth label
+  loadedVector = null;                // and the pad is the source again
+  padhint.style.opacity = '0';
+  strokeTo({ x: lastPt.x + .01, y: lastPt.y + .01 });
+  run();
+});
+pad.addEventListener('pointermove', e => {
+  if (!drawing) return;
+  strokeTo(ptFromEvent(e));
+  const now = performance.now();
+  if (now - lastRun > 60) { lastRun = now; run(); }
+});
+['pointerup', 'pointercancel'].forEach(k => pad.addEventListener(k, () => {
+  if (!drawing) return;
+  drawing = false; run(); announce();
+}));
+
+/* ===========================================================================
+   Geometry and drawing of the diagram.
+   =========================================================================== */
+const netCanvas = document.getElementById('net');
+const nctx = netCanvas.getContext('2d');
+let geo = null, nodes = [], edges = [[], [], []];
+let selected = null, pinned = false, starNeuron = 0, starPixel = 0;
+
+const css = {};
+/* The diagram is drawn on a canvas, which cannot resolve var() and does not
+   take oklch() from a custom property. getComputedStyle hands back the token's
+   own value, and a throwaway canvas context normalises it to hex. */
+const TOKEN = {
+  ink: '--color-ink', 'ink-dim': '--color-muted', rule: '--color-rule',
+  'pos-wire': '--sig-pos', 'neg-wire': '--sig-neg', accent: '--color-accent',
+  panel: '--color-paper-2', sunken: '--color-paper-3', pad: '--pad-ground'
+};
+const probeCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+function toHex(value) {
+  try {
+    probeCtx.fillStyle = '#808080';
+    probeCtx.fillStyle = value;
+    return probeCtx.fillStyle;
+  } catch (_) { return '#808080'; }
+}
+/* Chrome hands oklch() straight back out of fillStyle, so parsing the string
+   is no use: paint one pixel and read the channels the screen will show. */
+function hexRGB(value) {
+  try {
+    probeCtx.clearRect(0, 0, 1, 1);
+    probeCtx.fillStyle = value;
+    probeCtx.fillRect(0, 0, 1, 1);
+    const d = probeCtx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  } catch (_) { return [128, 128, 128]; }
+}
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k in TOKEN) css[k] = toHex(cs.getPropertyValue(TOKEN[k]).trim());
+}
+
+function layoutNet() {
+  const r = netCanvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = r.width || 320, h = r.height || 240;
+  netCanvas.width = Math.round(w * dpr);
+  netCanvas.height = Math.round(h * dpr);
+  nctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const padT = 26, padB = 24;
+  const blockSize = Math.min(h - padT - padB, w * 0.18);
+  geo = {
+    w, h,
+    block: { x: 12, y: (h - blockSize) / 2, s: blockSize },
+    cols: [w * 0.43, w * 0.66, w * 0.875],
+    radii: [Math.max(4, Math.min(7, (h - padT - padB) / 32 * 0.44)), 8.5, 11.5],
+    top: padT, bot: h - padB
+  };
+  nodes = [];
+  net.sizes.slice(1).forEach((n, li) => {
+    const x = geo.cols[li], rr = geo.radii[li], span = geo.bot - geo.top;
+    for (let i = 0; i < n; i++) {
+      nodes.push({ layer: li + 1, idx: i, x, y: geo.top + span * ((i + .5) / n), r: rr });
+    }
+  });
+  buildEdges();
+}
+const nodeAt = (layer, idx) => nodes.find(n => n.layer === layer && n.idx === idx);
+
+/* A wire matters in proportion to what flows through it:
+   contribution = upstream activation x weight. That product is what the
+   diagram encodes, so the picture changes with every digit. */
+function buildEdges() {
+  if (!state || !geo) return;
+  const { W, sizes } = net;
+  edges[0] = [];
+  const a1 = state.acts[1];
+  let m1 = 1e-6; for (const v of a1) m1 = Math.max(m1, v);
+  for (let j = 0; j < sizes[1]; j++) {
+    const n = nodeAt(1, j);
+    edges[0].push({
+      x1: geo.block.x + geo.block.s, y1: geo.block.y + geo.block.s * (j + .5) / sizes[1],
+      x2: n.x, y2: n.y, norm: a1[j] / m1, pos: true, j
+    });
+  }
+  for (let l = 1; l < 3; l++) {
+    const aPrev = state.acts[l], nIn = sizes[l], nOut = sizes[l + 1];
+    const list = []; let mx = 1e-9;
+    for (let i = 0; i < nIn; i++) {
+      const src = nodeAt(l, i);
+      for (let j = 0; j < nOut; j++) {
+        const c = aPrev[i] * W[l][i * nOut + j];
+        if (Math.abs(c) > mx) mx = Math.abs(c);
+        const dst = nodeAt(l + 1, j);
+        list.push({ x1: src.x, y1: src.y, x2: dst.x, y2: dst.y, c, i, j });
+      }
+    }
+    list.forEach(e => { e.norm = Math.abs(e.c) / mx; e.pos = e.c >= 0; });
+    list.sort((a, b) => b.norm - a.norm);
+    edges[l] = list;
+  }
+}
+
+/* ---- what each step lights up ----
+   Unlit parts fade to DIM rather than disappearing: the shape of the network
+   stays as context, especially on a light background where faint marks on a
+   pale panel vanish entirely. */
+const DIM = 0.2;
+function litness(stepIdx) {
+  // block, wires into L1, L1 nodes, wires L1->L2, L2 nodes, wires L2->L3,
+  // L3 nodes, softmax resolved
+  const s = { block: 0, g0: 0, n1: 0, g1: 0, n2: 0, g2: 0, n3: 0, soft: 0, single: null };
+  switch (stepIdx) {
+    case 0: s.block = 1; break;
+    case 1: s.block = 1; s.g0 = 1; s.n1 = 1; s.single = { layer: 1, idx: starNeuron }; break;
+    case 2: s.block = 1; s.g0 = 1; s.n1 = 1; s.single = { layer: 1, idx: starNeuron }; break;
+    case 3: s.block = .6; s.g0 = .6; s.n1 = 1; s.single = { layer: 1, idx: starNeuron }; break;
+    case 4: s.block = 1; s.g0 = 1; s.n1 = 1; break;
+    case 5: s.block = .5; s.g0 = .5; s.n1 = 1; s.g1 = 1; s.n2 = 1; break;
+    case 6: s.block = .4; s.g0 = .4; s.n1 = .6; s.g1 = .6; s.n2 = 1; s.g2 = 1; s.n3 = 1; break;
+    case 7: s.block = .3; s.g0 = .3; s.n1 = .4; s.g1 = .4; s.n2 = .6; s.g2 = 1; s.n3 = 1; s.soft = 1; break;
+    default: s.block = 1; s.g0 = 1; s.n1 = 1; s.g1 = 1; s.n2 = 1; s.g2 = 1; s.n3 = 1; s.soft = 1;
+  }
+  return s;
+}
+
+/* Lit values are tweened so a step change reads as the signal moving forward
+   rather than as a jump cut. Reduced motion skips straight to the target. */
+let litNow = litness(8), litFrom = litness(8), litTo = litness(8), litT = 1, litStart = 0;
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+const KEYS = ['block', 'g0', 'n1', 'g1', 'n2', 'g2', 'n3', 'soft'];
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+function setLit(target, animate) {
+  litFrom = { ...litNow }; litTo = target;
+  if (!animate || reduced.matches) { litNow = { ...target, single: target.single }; litT = 1; draw(); return; }
+  litT = 0; litStart = performance.now();
+  requestAnimationFrame(litTick);
+}
+function litTick(now) {
+  litT = Math.min(1, (now - litStart) / 480);
+  const e = ease(litT), out = { single: litTo.single };
+  for (const k of KEYS) out[k] = litFrom[k] + (litTo[k] - litFrom[k]) * e;
+  litNow = out;
+  draw();
+  if (litT < 1) requestAnimationFrame(litTick);
+}
+
+function draw() {
+  if (!geo || !state) return;
+  const { w, h } = geo, L = litNow;
+  nctx.clearRect(0, 0, w, h);
+  const b = geo.block;
+
+  // layer 0: the image, one cell per input unit
+  nctx.save();
+  nctx.globalAlpha = DIM + (1 - DIM) * L.block;
+  nctx.imageSmoothingEnabled = false;
+  nctx.fillStyle = css.pad;
+  nctx.fillRect(b.x, b.y, b.s, b.s);
+  nctx.drawImage(document.getElementById('seen28'), b.x, b.y, b.s, b.s);
+  nctx.restore();
+  nctx.strokeStyle = css.rule; nctx.lineWidth = 1;
+  nctx.strokeRect(b.x + .5, b.y + .5, b.s - 1, b.s - 1);
+
+  // step 2/3 mark the one pixel whose wire we are following
+  if (L.single && litNow.block > .5 && (step === 1 || step === 2)) {
+    const px = starPixel % 28, py = (starPixel / 28) | 0, cell = b.s / 28;
+    nctx.strokeStyle = css.accent; nctx.lineWidth = 2;
+    nctx.strokeRect(b.x + px * cell - 1, b.y + py * cell - 1, cell + 2, cell + 2);
+  }
+
+  const groupLit = [L.g0, L.g1, L.g2];
+  for (let g = 0; g < 3; g++) {
+    const lit = groupLit[g];
+    if (lit <= 0.001 && DIM <= 0) continue;
+    const base = DIM + (1 - DIM) * lit;
+    const list = edges[g];
+    const keep = g === 0 ? list.length : Math.max(8, Math.floor(list.length * density));
+    nctx.lineCap = 'round';
+    for (let k = 0; k < keep; k++) {
+      const e = list[k];
+      // when one neuron is under the lens, everything not wired to it recedes
+      let mult = 1;
+      if (L.single) {
+        const touches = (g === 0 && e.j === L.single.idx) ||
+                        (g > 0 && (e.j === L.single.idx && g === L.single.layer - 1));
+        mult = touches ? 1 : 0.12;
+      }
+      const a = Math.pow(e.norm, 0.75) * base * mult;
+      if (a < 0.008) continue;
+      nctx.globalAlpha = Math.min(0.92, a * (g === 0 ? 0.6 : 0.85));
+      nctx.strokeStyle = e.pos ? css['pos-wire'] : css['neg-wire'];
+      nctx.lineWidth = 0.4 + 2.2 * e.norm;
+      nctx.beginPath();
+      nctx.moveTo(e.x1, e.y1);
+      if (g === 0) {
+        const mx = (e.x1 + e.x2) / 2;
+        nctx.bezierCurveTo(mx, e.y1, mx, e.y2, e.x2, e.y2);
+      } else nctx.lineTo(e.x2, e.y2);
+      nctx.stroke();
+    }
+  }
+  nctx.globalAlpha = 1;
+
+  // the single wire of step 2: straight from the marked pixel to the neuron
+  if (step === 1 && L.single) {
+    const px = starPixel % 28, py = (starPixel / 28) | 0, cell = b.s / 28;
+    const n = nodeAt(1, L.single.idx);
+    const w0 = net.W[0][starPixel * net.sizes[1] + L.single.idx];
+    nctx.strokeStyle = w0 >= 0 ? css['pos-wire'] : css['neg-wire'];
+    nctx.lineWidth = 2.4; nctx.globalAlpha = .95;
+    nctx.beginPath();
+    nctx.moveTo(b.x + (px + .5) * cell, b.y + (py + .5) * cell);
+    nctx.lineTo(n.x, n.y);
+    nctx.stroke();
+    nctx.globalAlpha = 1;
+  }
+
+  const nodeLit = [0, L.n1, L.n2, L.n3];
+  const maxA = [1, 1, 1, 1];
+  for (let l = 1; l <= 2; l++) {
+    let m = 1e-6; for (const v of state.acts[l]) m = Math.max(m, v);
+    maxA[l] = m;
+  }
+  for (const n of nodes) {
+    const a = state.acts[n.layer][n.idx];
+    const lit = nodeLit[n.layer];
+    let mult = 1;
+    if (L.single && n.layer === L.single.layer) mult = n.idx === L.single.idx ? 1 : 0.14;
+    else if (L.single && n.layer > L.single.layer) mult = 0.14;
+    let vis = (DIM + (1 - DIM) * lit) * mult;
+    if (selected && selected.layer === n.layer && selected.idx === n.idx) vis = Math.max(vis, 0.9);
+    const frac = (n.layer === 3 ? a * L.soft : a / maxA[n.layer]) * Math.min(1, lit * 1.2);
+    const isSel = selected && selected.layer === n.layer && selected.idx === n.idx;
+    const isStar = L.single && L.single.layer === n.layer && L.single.idx === n.idx;
+
+    nctx.globalAlpha = Math.max(0.1, vis);
+    nctx.beginPath(); nctx.arc(n.x, n.y, n.r, 0, 6.2832);
+    nctx.fillStyle = css.panel; nctx.fill();
+    if (frac > 0.002) {
+      nctx.globalAlpha = Math.max(0.1, Math.min(1, 0.12 + frac) * vis);
+      nctx.fillStyle = css['pos-wire']; nctx.fill();
+    }
+    nctx.globalAlpha = Math.max(0.15, vis);
+    nctx.lineWidth = (isSel || isStar) ? 2.2 : 1;
+    nctx.strokeStyle = (isSel || isStar) ? css.accent : css.rule;
+    nctx.stroke();
+
+    if (n.layer === 3) {
+      nctx.globalAlpha = Math.max(0.3, vis);
+      nctx.fillStyle = css.ink;
+      nctx.font = '600 13px "IBM Plex Mono", monospace';
+      nctx.textAlign = 'left'; nctx.textBaseline = 'middle';
+      nctx.fillText(String(n.idx), n.x + n.r + 7, n.y);
+    }
+  }
+  nctx.globalAlpha = 1;
+
+  nctx.fillStyle = css['ink-dim'];
+  nctx.font = '500 11px "IBM Plex Mono", monospace';
+  nctx.textAlign = 'center'; nctx.textBaseline = 'top';
+  nctx.fillText('784 pixels', b.x + b.s / 2, geo.bot + 7);
+  ['32 relu', '16 relu', '10 softmax'].forEach((t, i) => nctx.fillText(t, geo.cols[i], geo.bot + 7));
+}
+
+/* ===========================================================================
+   The walkthrough. Nine steps, each one narrating the operation the diagram
+   is lighting up, with the arithmetic filled in from the current drawing.
+   =========================================================================== */
+let step = 0, density = 0.45, playing = false, playRaf = null, playStart = 0;
+const PLAY_MS = 7000;
+const RING_C = 43.98;   // 2 * pi * r, r = 7
+
+function setRing(t) {
+  const arc = document.getElementById('ring-arc');
+  if (arc) arc.style.strokeDashoffset = (RING_C * (1 - t)).toFixed(2);
+}
+
+const f = (v, d = 3) => (v >= 0 ? '' : '') + v.toFixed(d);
+const sgn = v => v >= 0 ? `<span class="plus">+</span>` : `<span class="minus">&minus;</span>`;
+const term = v => `${sgn(v)}${Math.abs(v).toFixed(3)}`;
+// 100.00% and 0.00% tell you nothing about a confident prediction, so keep
+// enough digits to show that the distribution never actually reaches 0 or 1.
+function pct(p) {
+  const v = p * 100;
+  if (v >= 99.99) return v.toFixed(4);
+  if (v > 0 && v < 0.0001) return '&lt;0.0001';
+  if (v < 0.01) return v.toFixed(4);
+  if (v < 1) return v.toFixed(3);
+  return v.toFixed(2);
+}
+
+function pickStars() {
+  // The neuron this walkthrough follows: the most strongly activated unit in
+  // layer 1, because it has the clearest story for this particular digit.
+  const a1 = state.acts[1];
+  starNeuron = 0;
+  for (let j = 1; j < a1.length; j++) if (a1[j] > a1[starNeuron]) starNeuron = j;
+  // and the pixel that contributed most to it
+  const nOut = net.sizes[1];
+  let best = 0, bestV = -1;
+  for (let i = 0; i < 784; i++) {
+    const c = Math.abs(input784[i] * net.W[0][i * nOut + starNeuron]);
+    if (c > bestV) { bestV = c; best = i; }
+  }
+  starPixel = best;
+}
+
+const STEPS = [
+  {
+    name: 'the input',
+    read: () => `${[...input784].filter(v => v > 0.01).length}/784 lit`,
+    title: 'Layer 0: the picture becomes 784 numbers',
+    lede: 'A neural network has no idea what a picture is. The 28&times;28 grid is flattened into one list of 784 brightness values, each between 0 (black) and 1 (white). That list is the only thing the network ever sees.',
+    eq() {
+      const nz = [...input784].filter(v => v > 0.01).length;
+      const row = 14, cells = [];
+      for (let c = 8; c < 18; c++) cells.push(input784[row * 28 + c].toFixed(2));
+      return `<span class="ln"><span class="lbl">x =</span> [ x<sub>0</sub>, x<sub>1</sub>, x<sub>2</sub>, &hellip;, x<sub>783</sub> ]<span class="dim">&nbsp;&nbsp;each in [0, 1]</span></span>` +
+        `<span class="ln"><span class="lbl">ink:</span> <span class="hi">${nz}</span> of 784 values are above zero</span>` +
+        `<span class="ln"><span class="lbl">row 14:</span> ${cells.join(' ')}</span>`;
+    },
+    why: 'The flattening throws away every hint that pixel 100 sits directly above pixel 128. The network has to <b>relearn that from the data</b>, which is exactly what the weights end up encoding.'
+  },
+  {
+    name: 'one wire',
+    read: () => {
+      const w = net.W[0][starPixel * net.sizes[1] + starNeuron];
+      return term(input784[starPixel] * w).replace(/<[^>]+>/g, '');
+    },
+    title: 'One pixel, one weight, one product',
+    lede: 'Follow a single wire. The highlighted cell in the grid is one input value. The wire carries it to a neuron in layer 1, multiplying it by the weight stored on that wire. That multiplication is the entire operation: there are 25,088 of them between these two layers.',
+    eq() {
+      const i = starPixel, j = starNeuron, nOut = net.sizes[1];
+      const x = input784[i], w = net.W[0][i * nOut + j];
+      const r = (i / 28) | 0, c = i % 28;
+      return `<span class="ln"><span class="lbl">pixel (row ${r}, col ${c})&nbsp;&nbsp;</span>x<sub>${i}</sub> = <span class="hi">${x.toFixed(3)}</span></span>` +
+        `<span class="ln"><span class="lbl">weight on the wire&nbsp;</span>w<sub>${i}&rarr;${j}</sub> = ${term(w)}</span>` +
+        `<span class="ln"><span class="lbl">what arrives&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>${x.toFixed(3)} &times; ${f(w)} = <span class="hi">${term(x * w)}</span></span>`;
+    },
+    why: 'A positive weight means &ldquo;ink here is evidence <b>for</b> whatever this neuron detects&rdquo;; a negative one means ink here is evidence against it. Nothing else is stored on the wire.'
+  },
+  {
+    name: 'the weighted sum',
+    read: () => `z = ${state.zs[0][starNeuron].toFixed(2)}`,
+    dynTitle: () => `Layer 1, neuron ${starNeuron}: add up all 784 wires`,
+    lede: 'This neuron receives a wire from every single pixel. It multiplies each one by its own weight, adds the lot together, then adds a bias, a constant that shifts how easily this neuron fires. The result is called <em>z</em>.',
+    eq() {
+      const j = starNeuron, nOut = net.sizes[1];
+      const terms = [];
+      for (let i = 0; i < 784; i++) terms.push({ i, c: input784[i] * net.W[0][i * nOut + j] });
+      terms.sort((a, b) => Math.abs(b.c) - Math.abs(a.c));
+      const top = terms.slice(0, 3);
+      const bias = net.b[0][j], z = state.zs[0][j];
+      const rest = z - bias - top.reduce((s, t) => s + t.c, 0);
+      return `<span class="ln">z<sub>${j}</sub> = &Sigma;<sub>i</sub> w<sub>i</sub>x<sub>i</sub> + b<span class="dim">&nbsp;&nbsp;(784 terms)</span></span>` +
+        top.map(t => `<span class="ln"><span class="lbl">&nbsp;&nbsp;pixel ${String(t.i).padStart(3, '0')}:</span> ${term(t.c)}</span>`).join('') +
+        `<span class="ln"><span class="lbl">&nbsp;&nbsp;the other 781:</span> ${term(rest)}</span>` +
+        `<span class="ln"><span class="lbl">&nbsp;&nbsp;bias:</span> ${term(bias)}</span>` +
+        `<span class="ln">z<sub>${j}</sub> = <span class="hi">${f(state.zs[0][j])}</span></span>`;
+    },
+    why: 'Written out for all 32 neurons at once this is a matrix multiply, which is why these run fast on a GPU. On its own, though, a weighted sum is still a <b>linear</b> function. Stacking more of them would gain nothing.'
+  },
+  {
+    name: 'the activation',
+    read: () => `a = ${state.acts[1][starNeuron].toFixed(2)}`,
+    title: 'Apply the activation function',
+    lede: 'The neuron does not output z. It passes z through a non-linear function first. This network uses ReLU: negative sums are flattened to zero, positive ones pass through unchanged. Without this one bend, the whole network would collapse into a single linear layer no matter how deep it got.',
+    eq() {
+      const j = starNeuron, z = state.zs[0][j], a = state.acts[1][j];
+      const fired = a > 0;
+      return `<span class="ln">a<sub>${j}</sub> = relu(z<sub>${j}</sub>) = max(0, ${f(z)}) = <span class="hi">${f(a)}</span></span>` +
+        `<span class="ln"><span class="dim">${fired
+          ? 'z was positive, so this neuron passes its signal on.'
+          : 'z was negative, so this neuron stays silent: it contributes nothing downstream.'}</span></span>` +
+        `<span class="ln"><span class="lbl">layer 1 overall:</span> <span class="hi">${[...state.acts[1]].filter(v => v > 0).length}</span> of 32 neurons fired</span>`;
+    },
+    why: 'A perceptron&rsquo;s step function would also be non-linear, but it has <b>no usable derivative</b> at the jump. Training works by multiplying derivatives backwards through the network, so a step function stops learning dead. ReLU bends without breaking that chain.'
+  },
+  {
+    name: 'the whole layer',
+    read: () => `${[...state.acts[1]].filter(v => v > 0).length}/32 fired`,
+    title: 'All 32 neurons at once',
+    lede: 'Every neuron in layer 1 does exactly what you just watched, with its own 784 weights and its own bias. Stack those 32 weight vectors into a matrix and the whole layer is one multiplication followed by one activation.',
+    eq() {
+      const fired = [...state.acts[1]].filter(v => v > 0).length;
+      let mx = 0, mi = 0;
+      state.acts[1].forEach((v, i) => { if (v > mx) { mx = v; mi = i; } });
+      return `<span class="ln">z<sup>(1)</sup> = W<sup>(1)</sup><sup>T</sup> x + b<sup>(1)</sup><span class="dim">&nbsp;&nbsp;(32&times;784)(784&times;1) + (32&times;1)</span></span>` +
+        `<span class="ln">a<sup>(1)</sup> = relu(z<sup>(1)</sup>)<span class="dim">&nbsp;&nbsp;&rarr; 32 numbers</span></span>` +
+        `<span class="ln"><span class="lbl">weights here:</span> 784 &times; 32 = <span class="hi">25,088</span></span>` +
+        `<span class="ln"><span class="lbl">firing now:</span> <span class="hi">${fired}</span>/32&nbsp;&nbsp;<span class="lbl">strongest:</span> neuron ${mi} at ${mx.toFixed(2)}</span>`;
+    },
+    why: 'Fully connected means every unit here is wired to every pixel. Hover any layer-1 neuron in the diagram and the inspector draws its 784 weights back out as a 28&times;28 image: <b>the pattern of ink that excites it</b>.'
+  },
+  {
+    name: 'layer 2',
+    read: () => `${[...state.acts[2]].filter(v => v > 0).length}/16 fired`,
+    title: 'Layer 2: features built from features',
+    lede: 'The second hidden layer never sees a pixel. Its inputs are the 32 numbers layer 1 produced, so it can only combine what layer 1 already found. Same operation, smaller: 32 in, 16 out.',
+    eq() {
+      const fired = [...state.acts[2]].filter(v => v > 0).length;
+      const j = (() => { let m = 0, mi = 0; state.acts[2].forEach((v, i) => { if (v > m) { m = v; mi = i; } }); return mi; })();
+      const contrib = [];
+      for (let i = 0; i < 32; i++) contrib.push({ i, c: state.acts[1][i] * net.W[1][i * 16 + j] });
+      contrib.sort((a, b) => Math.abs(b.c) - Math.abs(a.c));
+      return `<span class="ln">a<sup>(2)</sup> = relu(W<sup>(2)</sup><sup>T</sup> a<sup>(1)</sup> + b<sup>(2)</sup>)<span class="dim">&nbsp;&nbsp;32 &rarr; 16, 512 weights</span></span>` +
+        `<span class="ln"><span class="lbl">loudest unit here is ${j}; its top inputs:</span></span>` +
+        contrib.slice(0, 3).map(t => `<span class="ln"><span class="lbl">&nbsp;&nbsp;from layer-1 unit ${t.i}:</span> ${term(t.c)}</span>`).join('') +
+        `<span class="ln"><span class="lbl">firing now:</span> <span class="hi">${fired}</span>/16</span>`;
+    },
+    why: 'This is the only thing depth buys you: layer 2 can express combinations layer 1 cannot. <b>&ldquo;Deep&rdquo; is literal</b>: it counts stacked hidden layers, nothing more.'
+  },
+  {
+    name: 'raw scores',
+    read: () => {
+      const z = state.logits; let hi = 0;
+      for (let d = 1; d < 10; d++) if (z[d] > z[hi]) hi = d;
+      return `max ${z[hi].toFixed(1)}`;
+    },
+    title: 'The output layer produces 10 raw scores',
+    lede: 'The last layer turns 16 numbers into 10, one per digit. There is no activation function here. These are raw scores, called logits. They can be negative, and they do not add up to anything in particular.',
+    eq() {
+      const z = state.logits;
+      let hi = 0, lo = 0;
+      for (let d = 1; d < 10; d++) { if (z[d] > z[hi]) hi = d; if (z[d] < z[lo]) lo = d; }
+      const row = [...z].map((v, d) => `${d}:${v >= 0 ? ' ' : ''}${v.toFixed(1)}`).join('  ');
+      return `<span class="ln">z<sup>(3)</sup> = W<sup>(3)</sup><sup>T</sup> a<sup>(2)</sup> + b<sup>(3)</sup><span class="dim">&nbsp;&nbsp;16 &rarr; 10, 160 weights</span></span>` +
+        `<span class="ln"><span class="lbl">${row}</span></span>` +
+        `<span class="ln"><span class="lbl">highest:</span> z<sub>${hi}</sub> = <span class="hi">${z[hi].toFixed(2)}</span>&nbsp;&nbsp;<span class="lbl">lowest:</span> z<sub>${lo}</sub> = ${z[lo].toFixed(2)}</span>`;
+    },
+    why: 'A score of 13.9 does not mean 13.9% or 13.9 anything. Only the <b>ordering and the gaps</b> between these ten numbers carry meaning, which is what the next step converts into probabilities.'
+  },
+  {
+    name: 'softmax',
+    read: () => {
+      const p = state.probs; let b = 0;
+      for (let d = 1; d < 10; d++) if (p[d] > p[b]) b = d;
+      return `${pct(p[b]).replace('&lt;', '<')}%`;
+    },
+    title: 'Softmax turns scores into probabilities',
+    lede: 'Exponentiate every score, then divide each by the total. Exponentiating makes everything positive and magnifies the gaps; dividing by the sum forces the ten results to add to exactly 1. Subtracting the largest score first changes none of the answers and stops e<sup>z</sup> from overflowing, the same trick the Python code uses.',
+    eq() {
+      const z = state.logits, p = state.probs;
+      let mx = 0; for (let d = 1; d < 10; d++) if (z[d] > z[mx]) mx = d;
+      const zmax = z[mx];
+      const es = [...z].map(v => Math.exp(v - zmax));
+      const sum = es.reduce((a, b) => a + b, 0);
+      const order = [...z.keys()].sort((a, b) => z[b] - z[a]).slice(0, 3);
+      return `<span class="ln">p<sub>d</sub> = <span class="frac"><span class="num">e<sup>z<sub>d</sub> &minus; z<sub>max</sub></sup></span><span class="den">&Sigma;<sub>j</sub> e<sup>z<sub>j</sub> &minus; z<sub>max</sub></sup></span></span></span>` +
+        order.map(d => `<span class="ln"><span class="lbl">digit ${d}:</span> e<sup>${(z[d] - zmax).toFixed(2)}</sup> = ${es[d] < 0.001 ? es[d].toExponential(2) : es[d].toFixed(4)}</span>`).join('') +
+        `<span class="ln"><span class="lbl">sum over all ten:</span> ${sum.toFixed(6)}<span class="dim">&nbsp;&nbsp;just over 1, never exactly</span></span>` +
+        `<span class="ln">p<sub>${order[0]}</sub> = ${es[order[0]].toFixed(6)} / ${sum.toFixed(6)} = <span class="hi">${pct(p[order[0]])}%</span></span>`;
+    },
+    why: 'Softmax is the multi-class version of the sigmoid, and it is the standard last operation in essentially every neural classifier. It is also what makes <b>cross-entropy loss</b> (the negative log of the probability given to the correct digit) a sensible thing to minimise.'
+  },
+  {
+    name: 'the answer',
+    read: () => {
+      const p = state.probs; let b = 0;
+      for (let d = 1; d < 10; d++) if (p[d] > p[b]) b = d;
+      return `reads ${b}`;
+    },
+    title: 'The answer, and where these weights came from',
+    lede: 'The prediction is just the digit with the highest probability. Everything you have watched is one forward pass; the 25,818 numbers that made it work came from running this pass millions of times in reverse.',
+    eq() {
+      const p = state.probs;
+      let best = 0; for (let d = 1; d < 10; d++) if (p[d] > p[best]) best = d;
+      let second = best === 0 ? 1 : 0;
+      for (let d = 0; d < 10; d++) if (d !== best && p[d] > p[second]) second = d;
+      return `<span class="ln"><span class="lbl">prediction =</span> argmax<sub>d</sub> p<sub>d</sub> = <span class="hi">${best}</span> <span class="dim">at ${(p[best] * 100).toFixed(2)}%</span></span>` +
+        `<span class="ln"><span class="lbl">runner-up:</span> ${second} at ${(p[second] * 100).toFixed(2)}%</span>` +
+        `<span class="ln"><span class="dim">training (already done, in Python)</span></span>` +
+        `<span class="ln"><span class="lbl">loss =</span> &minus;log p<sub>correct</sub><span class="dim">&nbsp;&nbsp;cross-entropy</span></span>` +
+        `<span class="ln"><span class="lbl">at the output:</span> &part;loss/&part;z = (p &minus; y)<span class="dim">&nbsp;&nbsp;prediction minus truth</span></span>` +
+        `<span class="ln"><span class="lbl">then backwards:</span> &part;loss/&part;a<sup>(l&minus;1)</sup> = W<sup>(l)</sup> &part;loss/&part;z<sup>(l)</sup> &times; relu&prime;(z)</span>` +
+        `<span class="ln"><span class="lbl">each step:</span> w &larr; w &minus; &eta; &part;loss/&part;w</span>`;
+    },
+    why: 'That backward sweep is the chain rule, applied layer by layer to assign blame for the error to every weight. 55,000 digits, 55 passes over them, batches of 64, and the wires you are looking at are what settled out. It scores <b>97.81% on 10,000 digits it never saw</b>.'
+  },
+  {
+    name: 'when it is wrong',
+    read: () => {
+      if (truth === null) return 'no label';
+      const p = state.probs; let b = 0;
+      for (let d = 1; d < 10; d++) if (p[d] > p[b]) b = d;
+      if (b === truth) return 'correct';
+      return `loss ${(-Math.log(Math.max(p[truth], 1e-12))).toFixed(1)}`;
+    },
+    title: 'When it gets one wrong',
+    lede: 'The network is right 97.81% of the time, which leaves 219 of the 10,000 test digits wrong. Load one of them from the panel on the left (those six are real failures, classified with these exact weights) and this step shows what the mistake costs and what training would do about it.',
+    eq() {
+      const p = state.probs, z = state.logits;
+      let best = 0; for (let d = 1; d < 10; d++) if (p[d] > p[best]) best = d;
+
+      if (truth === null) {
+        let second = best === 0 ? 1 : 0;
+        for (let d = 0; d < 10; d++) if (d !== best && p[d] > p[second]) second = d;
+        return `<span class="ln"><span class="lbl">you drew this one, so there is no &ldquo;correct&rdquo; label to score against.</span></span>` +
+          `<span class="ln"><span class="lbl">margin:</span> z<sub>${best}</sub> &minus; z<sub>${second}</sub> = ${z[best].toFixed(2)} &minus; ${z[second].toFixed(2)} = <span class="hi">${(z[best] - z[second]).toFixed(2)}</span></span>` +
+          `<span class="ln"><span class="dim">A small margin means the network is nearly torn between two digits.</span></span>` +
+          `<span class="ln"><span class="dim">Load one of the six failures at left to see the loss and the gradient.</span></span>`;
+      }
+
+      const pt = Math.max(p[truth], 1e-12);
+      const loss = -Math.log(pt);
+      const right = best === truth;
+      const head = right
+        ? `<span class="ln"><span class="lbl">true label:</span> <span class="hi">${truth}</span>&nbsp;&nbsp;<span class="lbl">network said:</span> ${best} <span class="dim">(correct)</span></span>`
+        : `<span class="ln"><span class="lbl">true label:</span> <span class="hi">${truth}</span>&nbsp;&nbsp;<span class="lbl">network said:</span> <span class="minus">${best}</span> <span class="dim">at ${pct(p[best])}%</span></span>` +
+          `<span class="ln"><span class="lbl">it gave the right answer:</span> ${pct(p[truth])}%</span>`;
+
+      // Cross-entropy on this one example, and the gradient the notes give:
+      // dLoss/dz = (prediction - truth), one number per output unit.
+      const g = d => p[d] - (d === truth ? 1 : 0);
+      const rows = right
+        ? [truth]
+        : [best, truth];
+      return head +
+        `<span class="ln"><span class="lbl">loss =</span> &minus;log p<sub>${truth}</sub> = &minus;log(${pt < 1e-4 ? pt.toExponential(2) : pt.toFixed(6)}) = <span class="hi">${loss.toFixed(3)}</span>` +
+          `<span class="dim">${right ? '&nbsp;&nbsp;near zero' : '&nbsp;&nbsp;a big number'}</span></span>` +
+        `<span class="ln"><span class="dim">the gradient this would send backwards: &part;loss/&part;z = p &minus; y</span></span>` +
+        rows.map(d => `<span class="ln"><span class="lbl">digit ${d}:</span> ${pct(p[d])}% &minus; ${d === truth ? 1 : 0} = ${term(g(d))}` +
+          `<span class="dim">&nbsp;&nbsp;${g(d) > 0.01 ? 'push this score down' : g(d) < -0.01 ? 'push this score up' : 'barely move'}</span></span>`).join('') +
+        (right
+          ? `<span class="ln"><span class="dim">Every other digit is near zero too, so SGD would hardly change a weight.</span></span>`
+          : `<span class="ln"><span class="dim">Those two numbers are what backprop multiplies back through the wires.</span></span>`);
+    },
+    why: 'This is the rule from lecture, on a real example: <b>if the prediction is right the difference is 0 and nothing updates</b>; if it is confidently wrong the difference approaches 1 and the weights move hard. Note what the 100%-confident failures show: a softmax probability is how strongly these weights vote, <b>not</b> a measure of how often they are right.'
+  }
+];
+
+/* ---- walkthrough plumbing ---- */
+const wtBody = document.getElementById('wt-body');
+const wtCount = document.getElementById('wt-count');
+const wtDots = document.getElementById('wt-dots');
+const netStage = document.getElementById('net-stage');
+
+STEPS.forEach((s, i) => {
+  const li = document.createElement('li');
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.innerHTML = '<span class="n"></span><span class="nm"></span><span class="rd"></span>';
+  b.querySelector('.n').textContent = String(i + 1).padStart(2, '0');
+  b.querySelector('.nm').textContent = s.name;
+  b.setAttribute('aria-label', `Step ${i + 1}: ${s.name}`);
+  b.addEventListener('click', () => { stopPlay(); goStep(i); });
+  li.appendChild(b); wtDots.appendChild(li);
+});
+
+const hasInk = () => [...input784].some(v => v > 0.02);
+
+function renderStep(animate) {
+  const s = STEPS[step];
+  wtCount.textContent = `Step ${step + 1} of ${STEPS.length}`;
+  netStage.textContent = s.name;
+  const rows = [...wtDots.querySelectorAll('button')];
+  rows.forEach((b, i) => {
+    b.setAttribute('aria-current', String(i === step));
+    b.dataset.done = i < step ? '1' : '0';
+    const rd = b.querySelector('.rd');
+    // each row carries what that operation measured, so the whole pass reads
+    // as one record rather than ten cards you have to page through
+    if (rd) rd.textContent = (state && hasInk() && STEPS[i].read) ? STEPS[i].read() : '';
+  });
+  if (!hasInk()) {
+    wtBody.innerHTML = '<p class="state"><b>Nothing drawn yet</b>' +
+      'Draw a digit on the pad, or load one of the test digits beside it, and every step below fills in with that digit\'s own numbers.</p>';
+  } else {
+    wtBody.innerHTML =
+      `<h3>${s.dynTitle ? s.dynTitle() : s.title}</h3>` +
+      `<p class="lede">${s.lede}</p>` +
+      `<div class="eq">${s.eq()}</div>` +
+      `<p class="why">${s.why}</p>`;
+  }
+  document.getElementById('wt-back').disabled = step === 0;
+  document.getElementById('wt-next').disabled = step === STEPS.length - 1;
+  setLit(litness(step), animate);
+  announce();
+}
+
+function goStep(i) {
+  step = Math.max(0, Math.min(STEPS.length - 1, i));
+  renderStep(true);
+}
+function stopPlay() {
+  playing = false;
+  cancelAnimationFrame(playRaf);
+  document.getElementById('ring').classList.remove('on');
+  setRing(0);
+  document.getElementById('wt-play').textContent = 'Play';
+}
+function startPlay() {
+  playing = true;
+  document.getElementById('wt-play').textContent = 'Pause';
+  if (step === STEPS.length - 1) goStep(0);
+  document.getElementById('ring').classList.add('on');
+  playStart = performance.now();
+  setRing(0);
+  playRaf = requestAnimationFrame(playTick);
+}
+/* One clock drives both the ring and the step change, so the ring always
+   empties exactly when the next step arrives -- a separate timer would drift
+   away from the animation and the wait would look wrong again. */
+function playTick(now) {
+  if (!playing) return;
+  const t = Math.min(1, (now - playStart) / PLAY_MS);
+  setRing(t);
+  if (t >= 1) {
+    if (step >= STEPS.length - 1) { stopPlay(); return; }
+    goStep(step + 1);
+    playStart = now;
+    setRing(0);
+  }
+  playRaf = requestAnimationFrame(playTick);
+}
+
+document.getElementById('wt-next').addEventListener('click', () => { stopPlay(); goStep(step + 1); });
+document.getElementById('wt-back').addEventListener('click', () => { stopPlay(); goStep(step - 1); });
+document.getElementById('wt-play').addEventListener('click', () => playing ? stopPlay() : startPlay());
+document.querySelector('.wt').addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { stopPlay(); goStep(step + 1); e.preventDefault(); }
+  if (e.key === 'ArrowLeft') { stopPlay(); goStep(step - 1); e.preventDefault(); }
+});
+
+/* ===========================================================================
+   Run the net and push the result into every panel.
+   =========================================================================== */
+function run() {
+  input784 = loadedVector || preprocess();
+  padhint.style.opacity = input784.some(v => v > 0.02) ? '0' : '1';
+  state = forward(input784);
+  pickStars();
+  buildEdges();
+  drawSeen();
+  updateProbs();
+  updateInspector();
+  renderStep(false);
+}
+
+const SEEN_DRAWN = 'Your strokes are cropped, scaled to a 20&nbsp;px box and re-centred on their centre of mass, the same normalisation MNIST uses. Each of the <code>28&times;28</code> cells becomes one input unit.';
+const SEEN_LOADED = 'This is a test image straight from MNIST, already normalised, so it goes into the network exactly as stored, with no re-cropping. Each of the <code>28&times;28</code> cells is one input unit.';
+
+function drawSeen() {
+  document.getElementById('seen-copy').innerHTML = loadedVector ? SEEN_LOADED : SEEN_DRAWN;
+  const g = document.getElementById('seen28').getContext('2d');
+  const img = g.createImageData(28, 28);
+  for (let i = 0; i < 784; i++) {
+    const v = Math.round(input784[i] * 255);
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+
+/* The diagram is a canvas, so its content is invisible to a screen reader.
+   This keeps an equivalent sentence on the element and in a live region. */
+function announce() {
+  if (!state) return;
+  const p = state.probs;
+  let best = 0; for (let d = 1; d < 10; d++) if (p[d] > p[best]) best = d;
+  const anyInk = input784.some(v => v > 0.02);
+  const sel = selected ? `, ${selected.layer === 3 ? `output ${selected.idx}` : `layer ${selected.layer} unit ${selected.idx}`} selected` : '';
+  const txt = anyInk
+    ? `Step ${step + 1} of ${STEPS.length}, ${STEPS[step].name}. Prediction ${best} at ${(p[best] * 100).toFixed(1)} percent${sel}.`
+    : `Step ${step + 1} of ${STEPS.length}, ${STEPS[step].name}. Nothing drawn yet.`;
+  netCanvas.setAttribute('aria-label', 'Network diagram. ' + txt);
+  document.getElementById('live').textContent = txt;
+}
+
+/* ---- the readout ---- */
+const probsBody = document.getElementById('probs');
+for (let d = 0; d < 10; d++) {
+  probsBody.insertAdjacentHTML('beforeend',
+    `<tr id="pr${d}"><td class="d">${d}</td><td class="z"></td>` +
+    `<td class="bar"><div class="track"><div class="fill"></div></div></td>` +
+    `<td class="p"></td></tr>`);
+}
+function updateProbs() {
+  if (!state) return;
+  const probs = state.probs, logits = state.logits;
+  let best = 0;
+  for (let d = 1; d < 10; d++) if (probs[d] > probs[best]) best = d;
+  const anyInk = input784.some(v => v > 0.02);
+  for (let d = 0; d < 10; d++) {
+    const tr = document.getElementById('pr' + d);
+    tr.classList.toggle('top', d === best && anyInk);
+    tr.children[1].textContent = logits[d].toFixed(2);
+    tr.children[2].firstChild.firstChild.style.transform = `scaleX(${probs[d].toFixed(4)})`;
+    tr.children[3].innerHTML = pct(probs[d]) + '%';
+  }
+  let second = best === 0 ? 1 : 0;
+  for (let d = 0; d < 10; d++) if (d !== best && probs[d] > probs[second]) second = d;
+  document.getElementById('pred').textContent = anyInk ? String(best) : '?';
+  document.getElementById('conf').textContent = anyInk ? pct(probs[best]) + '%' : '';
+  document.getElementById('conf-sub').textContent = anyInk
+    ? `second guess: ${second} at ${pct(probs[second]).replace('&lt;', '<')}%`
+    : 'draw a digit to run the network';
+
+  const tl = document.getElementById('truthline');
+  if (truth === null || !anyInk) tl.hidden = true;
+  else {
+    tl.hidden = false;
+    const right = best === truth;
+    tl.innerHTML = `<span class="chip ${right ? 'good' : 'bad'}">${right ? 'correct' : 'wrong'}</span>` +
+      `<span class="what">true label is ${truth}${right ? '' : `, it chose ${best}`}</span>`;
+  }
+}
+
+/* ===========================================================================
+   Inspector: for one neuron, the sum that made it and the function applied.
+   =========================================================================== */
+const insp = document.getElementById('insp');
+const inspTag = document.getElementById('insp-tag');
+const INSP_EMPTY = '<p class="insp-empty">Hover a neuron in the diagram, or focus the diagram and use the arrow keys, to see the weighted sum behind it. First-hidden-layer neurons also show the 28&times;28 pattern of ink they respond to.</p>';
+
+function updateInspector() {
+  if (!selected || !state) { insp.innerHTML = INSP_EMPTY; inspTag.textContent = 'pick a neuron'; return; }
+  const { layer, idx } = selected;
+  const z = state.zs[layer - 1][idx], a = state.acts[layer][idx];
+  const nIn = net.sizes[layer - 1], nOut = net.sizes[layer];
+  const aPrev = state.acts[layer - 1], Wl = net.W[layer - 1], bias = net.b[layer - 1][idx];
+  inspTag.textContent = pinned ? 'pinned' : 'live';
+
+  const name = layer === 3 ? `output &ldquo;${idx}&rdquo;` : `layer ${layer}, unit ${idx}`;
+  const fname = layer === 3 ? 'softmax' : 'relu';
+  const aVal = layer === 3 ? `${(a * 100).toFixed(2)}%` : a.toFixed(3);
+
+  let html = `<div class="insp-head"><b>${name}</b><span>${nIn} inputs &middot; bias ${bias.toFixed(3)}</span></div>`;
+  html += '<div class="insp-grid">';
+  if (layer === 1) html += '<canvas id="rf" width="28" height="28" role="img" aria-label="This neuron\'s 784 weights drawn as a 28 by 28 image."></canvas>';
+  html += '<canvas id="curve" width="300" height="148" role="img" aria-label="The activation function with this neuron\'s value marked."></canvas>';
+  html += '</div>';
+  html += `<p class="trace">z = &Sigma; w&middot;a + b = <b>${z.toFixed(3)}</b><br>${fname}(z) = <b>${aVal}</b></p>`;
+
+  const contrib = [];
+  for (let i = 0; i < nIn; i++) contrib.push({ i, c: aPrev[i] * Wl[i * nOut + idx] });
+  contrib.sort((x, y) => Math.abs(y.c) - Math.abs(x.c));
+  const top = contrib.slice(0, layer === 1 ? 0 : 6);
+  if (top.length) {
+    const mx = Math.abs(top[0].c) || 1;
+    html += '<ul class="contrib">';
+    for (const t of top) {
+      const wpx = Math.max(2, Math.round(Math.abs(t.c) / mx * 60));
+      html += `<li><span style="width:4.5ch">u${t.i}</span>` +
+        `<span class="cb" style="width:${wpx}px;background:${t.c >= 0 ? 'var(--pos-wire)' : 'var(--neg-wire)'}"></span>` +
+        `<span class="cv">${t.c >= 0 ? '+' : '\u2212'}${Math.abs(t.c).toFixed(3)}</span></li>`;
+    }
+    html += '</ul>';
+  }
+  insp.innerHTML = html;
+  if (layer === 1) drawReceptiveField(idx);
+  drawCurve(z, a, layer);
+}
+
+/* A first-hidden-layer neuron has one weight per pixel, so its weight vector
+   is itself a 28x28 image: ink it wants (orange) and ink it rejects (blue). */
+function drawReceptiveField(j) {
+  const c = document.getElementById('rf'); if (!c) return;
+  const g = c.getContext('2d'), nOut = net.sizes[1], W0 = net.W[0];
+  // the same two signal colours the wires use, read from the tokens
+  const posRGB = hexRGB(css['pos-wire']), negRGB = hexRGB(css['neg-wire']);
+  let mx = 1e-9;
+  for (let i = 0; i < 784; i++) mx = Math.max(mx, Math.abs(W0[i * nOut + j]));
+  const img = g.createImageData(28, 28);
+  for (let i = 0; i < 784; i++) {
+    const v = W0[i * nOut + j] / mx, t = Math.abs(v);
+    const col = v >= 0 ? posRGB : negRGB, bg = 18;
+    img.data[i * 4] = bg + (col[0] - bg) * t;
+    img.data[i * 4 + 1] = bg + (col[1] - bg) * t;
+    img.data[i * 4 + 2] = bg + (col[2] - bg) * t;
+    img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+
+function drawCurve(z, a, layer) {
+  const c = document.getElementById('curve'); if (!c) return;
+  const g = c.getContext('2d'), W = 300, H = 148, m = 14;
+  g.clearRect(0, 0, W, H);
+  const span = Math.max(4, Math.abs(z) * 1.6);
+  const xs = v => m + (v + span) / (2 * span) * (W - 2 * m);
+  // relu(span) == span, so the y-scale has to reach span or the line clips.
+  const yMax = layer === 3 ? 1.2 : Math.max(1.2, span, Math.abs(a) * 1.15);
+  const ys = v => H - m - (v / yMax) * (H - 2 * m) * 0.92;
+
+  g.strokeStyle = css.rule; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(m, ys(0)); g.lineTo(W - m, ys(0)); g.stroke();
+  g.beginPath(); g.moveTo(xs(0), m); g.lineTo(xs(0), H - m); g.stroke();
+
+  g.strokeStyle = css.ink; g.lineWidth = 2;
+  g.beginPath();
+  for (let px = 0; px <= W - 2 * m; px += 2) {
+    const zv = -span + (px / (W - 2 * m)) * 2 * span;
+    const av = layer === 3 ? 1 / (1 + Math.exp(-zv)) : Math.max(0, zv);
+    const X = m + px, Y = ys(layer === 3 ? av * yMax * 0.8 : av);
+    px === 0 ? g.moveTo(X, Y) : g.lineTo(X, Y);
+  }
+  g.stroke();
+
+  const px = xs(Math.max(-span, Math.min(span, z)));
+  const py = ys(layer === 3 ? Math.max(0, Math.min(1, a)) * yMax * 0.8 : Math.max(0, a));
+  g.strokeStyle = css.accent; g.setLineDash([3, 3]); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(px, ys(0)); g.lineTo(px, py); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = css.accent;
+  g.beginPath(); g.arc(px, py, 4, 0, 6.2832); g.fill();
+
+  g.fillStyle = css['ink-dim'];
+  g.font = '500 12px "IBM Plex Mono", monospace';
+  g.textAlign = 'center';
+  g.fillText(layer === 3 ? 'softmax (shape)' : 'f(z) = max(0, z)', W / 2, H - 2);
+}
+
+/* ---- picking a neuron: pointer or keyboard ---- */
+function pick(e) {
+  const r = netCanvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) * (geo.w / r.width);
+  const y = (e.clientY - r.top) * (geo.h / r.height);
+  let best = null, bd = 1e9;
+  for (const n of nodes) {
+    const d = (n.x - x) ** 2 + (n.y - y) ** 2;
+    // a generous target: these marks are far smaller than a comfortable one
+    const hit = Math.max(n.r + 10, 13);
+    if (d < bd && d < hit * hit) { bd = d; best = n; }
+  }
+  return best;
+}
+function select(n, pin) {
+  selected = n ? { layer: n.layer, idx: n.idx } : null;
+  if (pin !== undefined) pinned = pin;
+  updateInspector(); draw(); announce();
+}
+netCanvas.addEventListener('pointermove', e => {
+  if (pinned) return;
+  const n = pick(e);
+  const changed = (n && (!selected || n.layer !== selected.layer || n.idx !== selected.idx)) || (!n && selected);
+  netCanvas.style.cursor = n ? 'pointer' : 'default';
+  if (changed) select(n);
+});
+netCanvas.addEventListener('pointerleave', () => { if (!pinned && selected) select(null); });
+netCanvas.addEventListener('click', e => {
+  const n = pick(e);
+  if (!n) select(null, false);
+  else if (selected && pinned && selected.layer === n.layer && selected.idx === n.idx) select(n, false);
+  else select(n, true);
+});
+netCanvas.addEventListener('keydown', e => {
+  const k = e.key;
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Escape'].includes(k)) return;
+  e.preventDefault();
+  if (k === 'Escape') { select(null, false); return; }
+  if (k === 'Enter' || k === ' ') { pinned = !pinned; updateInspector(); return; }
+  let { layer, idx } = selected || { layer: 1, idx: -1 };
+  if (k === 'ArrowDown') idx += 1;
+  else if (k === 'ArrowUp') idx -= 1;
+  else if (k === 'ArrowRight') layer = Math.min(3, layer + 1);
+  else if (k === 'ArrowLeft') layer = Math.max(1, layer - 1);
+  const n = net.sizes[layer];
+  idx = ((idx % n) + n) % n;
+  select(nodeAt(layer, idx), true);
+});
+
+/* ---- controls ---- */
+document.getElementById('clear').addEventListener('click', () => {
+  clearPad(); truth = null; loadedVector = null; padhint.style.opacity = '1'; stopPlay(); run();
+});
+document.getElementById('replay').addEventListener('click', () => { stopPlay(); goStep(0); startPlay(); });
+
+/* ---- samples ---- */
+function paintSample(s, label) {
+  truth = (label === undefined) ? null : label;
+  // Keep the digit's own 784 values: the pad is only showing them.
+  loadedVector = Float32Array.from(s.px, v => v / 255);
+  clearPad();
+  const off = document.createElement('canvas');
+  off.width = off.height = 28;
+  const og = off.getContext('2d'), img = og.createImageData(28, 28);
+  for (let i = 0; i < 784; i++) {
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = s.px[i];
+    img.data[i * 4 + 3] = 255;
+  }
+  og.putImageData(img, 0, 0);
+  padCtx.imageSmoothingEnabled = true;
+  padCtx.drawImage(off, 14, 14, S - 28, S - 28);
+  padhint.style.opacity = '0';
+}
+
+/* ---- boot ---- */
+async function boot() {
+  readColors();
+  // loading: a skeleton in the shape of what is coming
+  wtBody.innerHTML = '<p class="state"><b>Loading the trained weights</b>' +
+    '25,818 numbers, about 190 KB.</p>' +
+    '<div class="skeleton" style="width:60%;margin-top:12px"></div>' +
+    '<div class="skeleton" style="width:85%;margin-top:8px"></div>' +
+    '<div class="skeleton" style="width:40%;margin-top:8px"></div>';
+  const [w, sm, ms] = await Promise.all([
+    fetch('weights.json').then(r => r.json()),
+    fetch('samples.json').then(r => r.json()).catch(() => []),
+    fetch('misses.json').then(r => r.json()).catch(() => [])
+  ]);
+  net = {
+    sizes: w.sizes, activation: w.activation, test_accuracy: w.test_accuracy,
+    W: w.W.map(a => Float32Array.from(a)),
+    b: w.b.map(a => Float32Array.from(a))
+  };
+  samples = sm;
+  misses = ms;
+
+  document.getElementById('s-arch').textContent = net.sizes.join('\u2192');
+  const nParams = net.W.reduce((s, a) => s + a.length, 0) + net.b.reduce((s, a) => s + a.length, 0);
+  document.getElementById('s-params').textContent = nParams.toLocaleString();
+  document.getElementById('s-acc').textContent = (net.test_accuracy * 100).toFixed(2) + '%';
+
+  const box = document.getElementById('samples');
+  samples.forEach(s => {
+    const btn = document.createElement('button');
+    btn.textContent = s.label;
+    btn.setAttribute('aria-label', `Load a test image of the digit ${s.label}`);
+    btn.addEventListener('click', () => { stopPlay(); paintSample(s, s.label); run(); goStep(0); });
+    box.appendChild(btn);
+  });
+
+  // Real misclassifications from the test set. They jump straight to the last
+  // step, which is the one that explains the mistake.
+  const mbox = document.getElementById('misses');
+  misses.forEach(m => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `${m.truth}<span class="arrow">\u2192</span>${m.pred}`;
+    btn.setAttribute('aria-label',
+      `Load a ${m.truth} that the network reads as a ${m.pred}, at ${(m.conf * 100).toFixed(0)} percent confidence`);
+    btn.addEventListener('click', () => {
+      stopPlay(); paintSample(m, m.truth); run(); goStep(STEPS.length - 1);
+    });
+    mbox.appendChild(btn);
+  });
+  if (!misses.length) document.getElementById('misses-label').hidden = true;
+
+  insp.innerHTML = INSP_EMPTY;
+  clearPad();
+  if (samples.length) paintSample(samples[3], samples[3].label);
+  layoutNet();
+  run();                       // the page opens resolved, on step 1
+}
+
+let rz;
+window.addEventListener('resize', () => {
+  clearTimeout(rz);
+  rz = setTimeout(() => { if (net) { layoutNet(); draw(); } }, 120);
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  readColors(); draw(); if (selected) updateInspector();
+});
+new MutationObserver(() => { readColors(); draw(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+boot().catch(err => {
+  // error: what broke, and what to do about it
+  document.getElementById('wt-body').innerHTML =
+    '<p class="state error"><b>The trained weights did not load</b>' +
+    'The page needs weights.json beside it, which is where the network lives. ' +
+    'Reload the page; if it keeps failing, the file is missing or blocked.</p>' +
+    '<p class="trace">' + String(err) + '</p>';
+  document.getElementById('conf-sub').textContent = 'no network loaded';
+});
+</script>
