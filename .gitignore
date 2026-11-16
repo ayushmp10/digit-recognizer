@@ -7,3 +7,6 @@ data/
 .DS_Store
 __pycache__/
 *.pyc
+
+# train.py writes this beside weights.json; the page only loads the json
+docs/weights.npz
