@@ -1152,24 +1152,46 @@ function swapBody(html, animate) {
     // before the animation's own first keyframe lands
     wtBody.style.height = h0 + 'px';
     wtBody.style.overflow = 'hidden';
+    // 'forwards' so the panel holds the new height when the animation ends
+    // instead of falling back to the pinned old one for a frame; the fill is
+    // dropped again, with the pin, on cleanup
     swapAnims.push(wtBody.animate(
       [{ height: h0 + 'px' }, { height: h1 + 'px' }],
-      { duration: ms, easing: EASE_CSS }));
+      { duration: ms, easing: EASE_CSS, fill: 'forwards' }));
   }
-  // Mostly sequential, with a short overlap. Two layers of text held at half
-  // opacity over each other reads as mud, so the ghost is nearly gone before
-  // the new text starts arriving.
+  /* Sequential, never simultaneous. Two blocks of text whose lines sit at
+     different heights cannot be held over each other at any opacity without
+     reading as one jumbled block, so the old text is all the way gone -- with a
+     frame of daylight to spare -- before the new text begins to arrive.
+     fill is what makes that true rather than nearly true: an effect stops
+     applying the moment its active interval ends, so a fade-out without
+     'forwards' hands the element back its natural opacity of 1 and the old
+     text snaps to full strength on top of the new text for the rest of
+     the beat. 'backwards' holds the incoming layer at 0 through its delay.
+     Opacity ramps linearly, which is how a fade reads evenly; --ease-out here
+     would spend half the fade in its first few frames. Only the lift is eased. */
+  const outBy = Math.round(ms * 0.36);     // the ghost is clear by here
+  const inAt = Math.round(ms * 0.40);      // ~1 frame later, nothing on screen
   swapAnims.push(ghost.animate(
     [{ opacity: 1 }, { opacity: 0 }],
-    { duration: Math.round(ms * 0.5), easing: 'linear' }));
+    { duration: outBy, easing: 'linear', fill: 'forwards' }));
   swapAnims.push(layer.animate(
-    [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'none' }],
-    { duration: Math.round(ms * 0.72), delay: Math.round(ms * 0.28), easing: EASE_CSS, fill: 'backwards' }));
+    [{ opacity: 0 }, { opacity: 1 }],
+    { duration: ms - inAt, delay: inAt, easing: 'linear', fill: 'backwards' }));
+  swapAnims.push(layer.animate(
+    [{ transform: 'translateY(7px)' }, { transform: 'none' }],
+    { duration: ms - inAt, delay: inAt, easing: EASE_CSS, fill: 'backwards' }));
 
-  // a cancelled animation rejects, and whoever cancelled it has already cleaned up
-  Promise.all(swapAnims.map(a => a.finished)).then(() => {
+  // A cancelled animation rejects, and whoever cancelled it has already cleaned
+  // up, so the rejection branch is deliberately empty. Hold this swap's own
+  // animations in a local: if a later swap replaced them, these are the ones to
+  // leave alone. Cancelling at the end releases the forwards fills, which would
+  // otherwise pin the panel's height past the transition and stop it reflowing.
+  const mine = swapAnims;
+  Promise.all(mine.map(a => a.finished)).then(() => {
     ghost.remove();
     wtBody.style.height = ''; wtBody.style.overflow = '';
+    mine.forEach(a => a.cancel());
   }, () => {});
 }
 
